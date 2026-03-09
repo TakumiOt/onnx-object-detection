@@ -28,6 +28,7 @@ impl BoundingBox {
 pub struct Detection {
     pub bbox: BoundingBox,
     pub class_id: u32,
+    #[allow(dead_code)]
     pub label: String,
     pub confidence: f32,
 }
