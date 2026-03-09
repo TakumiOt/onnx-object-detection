@@ -7,7 +7,7 @@ use crate::domain::error::DomainError;
 use crate::domain::frame::Frame;
 use crate::use_case::port::FrameRenderer;
 
-const JPEG_QUALITY: u8 = 75;
+const DEFAULT_JPEG_QUALITY: u8 = 75;
 
 const COLOR_PALETTE: [Rgb<u8>; 10] = [
     Rgb([255, 0, 0]),
@@ -22,11 +22,21 @@ const COLOR_PALETTE: [Rgb<u8>; 10] = [
     Rgb([255, 128, 128]),
 ];
 
-pub struct ImageRenderer;
+pub struct ImageRenderer {
+    jpeg_quality: u8,
+}
 
 impl ImageRenderer {
-    pub fn new() -> Self {
-        Self
+    pub fn new(jpeg_quality: u8) -> Self {
+        Self { jpeg_quality }
+    }
+}
+
+impl Default for ImageRenderer {
+    fn default() -> Self {
+        Self {
+            jpeg_quality: DEFAULT_JPEG_QUALITY,
+        }
     }
 }
 
@@ -47,13 +57,13 @@ impl FrameRenderer for ImageRenderer {
             }
         }
 
-        encode_jpeg(&img)
+        encode_jpeg(&img, self.jpeg_quality)
     }
 }
 
-fn encode_jpeg(img: &RgbImage) -> Result<Vec<u8>, DomainError> {
+fn encode_jpeg(img: &RgbImage, quality: u8) -> Result<Vec<u8>, DomainError> {
     let mut buf = Vec::new();
-    let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut buf, JPEG_QUALITY);
+    let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut buf, quality);
     img.write_with_encoder(encoder)
         .map_err(|e| DomainError::Render(format!("jpeg encode: {e}")))?;
     Ok(buf)
