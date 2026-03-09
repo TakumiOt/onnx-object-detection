@@ -94,6 +94,34 @@ fn mjpeg_to_rgb(data: &[u8]) -> Result<(Vec<u8>, u32, u32), DomainError> {
     Ok((rgb.into_raw(), w, h))
 }
 
+impl FrameSource for V4l2Camera {
+    fn capture(&mut self) -> Result<Frame, DomainError> {
+        let (buf, _meta) = self
+            .stream
+            .next()
+            .map_err(|e| DomainError::Capture(format!("capture: {e}")))?;
+
+        match self.format {
+            CapturedFormat::Yuyv => {
+                let data = yuyv_to_rgb(buf, self.width, self.height);
+                Ok(Frame {
+                    data,
+                    width: self.width,
+                    height: self.height,
+                })
+            }
+            CapturedFormat::Mjpeg => {
+                let (data, w, h) = mjpeg_to_rgb(buf)?;
+                Ok(Frame {
+                    data,
+                    width: w,
+                    height: h,
+                })
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -136,33 +164,5 @@ mod tests {
         let yuyv = vec![255, 0, 255, 255];
         let rgb = yuyv_to_rgb(&yuyv, 2, 1);
         assert_eq!(rgb.len(), 6);
-    }
-}
-
-impl FrameSource for V4l2Camera {
-    fn capture(&mut self) -> Result<Frame, DomainError> {
-        let (buf, _meta) = self
-            .stream
-            .next()
-            .map_err(|e| DomainError::Capture(format!("capture: {e}")))?;
-
-        match self.format {
-            CapturedFormat::Yuyv => {
-                let data = yuyv_to_rgb(buf, self.width, self.height);
-                Ok(Frame {
-                    data,
-                    width: self.width,
-                    height: self.height,
-                })
-            }
-            CapturedFormat::Mjpeg => {
-                let (data, w, h) = mjpeg_to_rgb(buf)?;
-                Ok(Frame {
-                    data,
-                    width: w,
-                    height: h,
-                })
-            }
-        }
     }
 }
