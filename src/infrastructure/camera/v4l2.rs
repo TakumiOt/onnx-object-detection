@@ -22,9 +22,10 @@ enum CapturedFormat {
 
 impl V4l2Camera {
     pub fn open(device_path: &str) -> Result<Self, DomainError> {
-        let dev = Box::leak(Box::new(Device::with_path(device_path).map_err(|e| {
-            DomainError::Capture(format!("open {device_path}: {e}"))
-        })?));
+        let dev =
+            Box::leak(Box::new(Device::with_path(device_path).map_err(|e| {
+                DomainError::Capture(format!("open {device_path}: {e}"))
+            })?));
 
         let (fmt, captured_format) = negotiate_format(dev)?;
         let width = fmt.width;
