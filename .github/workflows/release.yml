@@ -1,0 +1,49 @@
+name: Release Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Build target triple"
+        required: true
+        default: "x86_64-unknown-linux-gnu"
+        type: choice
+        options:
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+
+env:
+  CARGO_TERM_COLOR: always
+  BINARY_NAME: onnx-object-detection
+
+jobs:
+  build:
+    name: Build (${{ inputs.target }})
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ inputs.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ inputs.target }}
+
+      - name: Install cross-compilation tools
+        if: inputs.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> "$GITHUB_ENV"
+
+      - name: Build release binary
+        run: cargo build --release --target ${{ inputs.target }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BINARY_NAME }}-${{ inputs.target }}
+          path: target/${{ inputs.target }}/release/${{ env.BINARY_NAME }}
+          if-no-files-found: error
